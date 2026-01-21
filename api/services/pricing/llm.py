@@ -123,6 +123,12 @@ LLM_PRICING: Dict[str, Dict[str, TokenPricingModel]] = {
             / 1000000,  # No completion tokens for TTS
         ),
     },
+    ServiceProviders.OPENAI_COMPATIBLE: {
+        "default": TokenPricingModel(
+            prompt_token_price=Decimal("2.00") / 1000000,
+            completion_token_price=Decimal("8.00") / 1000000,
+        )
+    },
     ServiceProviders.GROQ: {
         "llama-3.3-70b-versatile": TokenPricingModel(
             prompt_token_price=Decimal("0.00059") / 1000,  # $0.00059 per 1K tokens

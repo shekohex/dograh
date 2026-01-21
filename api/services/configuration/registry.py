@@ -13,6 +13,7 @@ class ServiceType(Enum):
 
 class ServiceProviders(str, Enum):
     OPENAI = "openai"
+    OPENAI_COMPATIBLE = "openai_compatible"
     DEEPGRAM = "deepgram"
     GROQ = "groq"
     CARTESIA = "cartesia"
@@ -28,6 +29,7 @@ class ServiceProviders(str, Enum):
 class BaseServiceConfiguration(BaseModel):
     provider: Literal[
         ServiceProviders.OPENAI,
+        ServiceProviders.OPENAI_COMPATIBLE,
         ServiceProviders.DEEPGRAM,
         ServiceProviders.GROQ,
         ServiceProviders.ELEVENLABS,
@@ -143,6 +145,16 @@ class OpenAILLMService(BaseLLMConfiguration):
 
 
 @register_llm
+class OpenAICompatibleLLMService(BaseLLMConfiguration):
+    provider: Literal[ServiceProviders.OPENAI_COMPATIBLE] = (
+        ServiceProviders.OPENAI_COMPATIBLE
+    )
+    base_url: str = Field(default="https://api.openai.com/v1")
+    model: str = Field(default="gpt-4.1")
+    api_key: str | None = None
+
+
+@register_llm
 class GoogleLLMService(BaseLLMConfiguration):
     provider: Literal[ServiceProviders.GOOGLE] = ServiceProviders.GOOGLE
     model: str = Field(
@@ -182,6 +194,7 @@ class DograhLLMService(BaseLLMConfiguration):
 LLMConfig = Annotated[
     Union[
         OpenAILLMService,
+        OpenAICompatibleLLMService,
         GroqLLMService,
         GoogleLLMService,
         AzureLLMService,
@@ -241,6 +254,17 @@ class OpenAITTSService(BaseTTSConfiguration):
     api_key: str
 
 
+@register_tts
+class OpenAICompatibleTTSService(BaseTTSConfiguration):
+    provider: Literal[ServiceProviders.OPENAI_COMPATIBLE] = (
+        ServiceProviders.OPENAI_COMPATIBLE
+    )
+    base_url: str = Field(default="https://api.openai.com/v1")
+    model: str = Field(default="gpt-4o-mini-tts")
+    voice: str = "alloy"
+    api_key: str | None = None
+
+
 DOGRAH_TTS_MODELS = ["default"]
 
 
@@ -290,6 +314,7 @@ TTSConfig = Annotated[
     Union[
         DeepgramTTSConfiguration,
         OpenAITTSService,
+        OpenAICompatibleTTSService,
         ElevenlabsTTSConfiguration,
         DograhTTSService,
         SarvamTTSConfiguration,
@@ -366,6 +391,16 @@ class OpenAISTTConfiguration(BaseSTTConfiguration):
     api_key: str
 
 
+@register_stt
+class OpenAICompatibleSTTConfiguration(BaseSTTConfiguration):
+    provider: Literal[ServiceProviders.OPENAI_COMPATIBLE] = (
+        ServiceProviders.OPENAI_COMPATIBLE
+    )
+    base_url: str = Field(default="https://api.openai.com/v1")
+    model: str = Field(default="gpt-4o-transcribe")
+    api_key: str | None = None
+
+
 # Dograh STT Service
 DOGRAH_STT_MODELS = ["default"]
 
@@ -439,6 +474,7 @@ STTConfig = Annotated[
     Union[
         DeepgramSTTConfiguration,
         OpenAISTTConfiguration,
+        OpenAICompatibleSTTConfiguration,
         DograhSTTService,
         SpeechmaticsSTTConfiguration,
         SarvamSTTConfiguration,

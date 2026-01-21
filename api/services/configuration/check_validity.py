@@ -31,6 +31,7 @@ class UserConfigurationValidator:
         self._provider_api_key_validity_status: Dict[str, bool] = {}
         self._validator_map = {
             ServiceProviders.OPENAI.value: self._check_openai_api_key,
+            ServiceProviders.OPENAI_COMPATIBLE.value: self._check_openai_compatible_api_key,
             ServiceProviders.DEEPGRAM.value: self._check_deepgram_api_key,
             ServiceProviders.GROQ.value: self._check_groq_api_key,
             ServiceProviders.ELEVENLABS.value: self._validate_elevenlabs_api_key,
@@ -75,6 +76,9 @@ class UserConfigurationValidator:
         provider = service_config.provider
         api_key = service_config.api_key
 
+        if provider == ServiceProviders.OPENAI_COMPATIBLE.value and not api_key:
+            return []
+
         if not self._check_api_key(provider, api_key):
             return [{"model": service_name, "message": f"Invalid {provider} API key"}]
 
@@ -99,6 +103,9 @@ class UserConfigurationValidator:
         except openai.AuthenticationError:
             self._provider_api_key_validity_status[model] = False
         return self._provider_api_key_validity_status[model]
+
+    def _check_openai_compatible_api_key(self, model: str, api_key: str) -> bool:
+        return True
 
     def _check_deepgram_api_key(self, model: str, api_key: str) -> bool:
         if model in self._provider_api_key_validity_status:

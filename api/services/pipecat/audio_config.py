@@ -123,7 +123,7 @@ def create_audio_config(transport_type: str) -> AudioConfig:
         # The transport will handle resampling between 24kHz and 16kHz
         return AudioConfig(
             transport_in_sample_rate=16000,  # Transport will resample from 24kHz
-            transport_out_sample_rate=16000,  # Transport will resample to 24kHz
+            transport_out_sample_rate=24000,  # OpenAI TTS outputs 24kHz
             vad_sample_rate=16000,  # VAD native rate
             pipeline_sample_rate=16000,  # Keep pipeline at 16kHz
             buffer_size_seconds=1.0,

@@ -1,3 +1,4 @@
+import inspect
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
@@ -28,6 +29,26 @@ if TYPE_CHECKING:
     from api.services.pipecat.audio_config import AudioConfig
 
 
+def _init_openai_service(service_cls, base_url: str | None, **kwargs):
+    params = inspect.signature(service_cls.__init__).parameters
+    accepts_kwargs = any(
+        param.kind == param.VAR_KEYWORD for param in params.values()
+    )
+    supports_base_url = accepts_kwargs or "base_url" in params
+    if base_url and not supports_base_url:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "OpenAI-compatible base_url not supported by installed pipecat. "
+                "Update the pipecat submodule/version."
+            ),
+        )
+    init_kwargs = kwargs if accepts_kwargs else {k: v for k, v in kwargs.items() if k in params}
+    if base_url and supports_base_url:
+        init_kwargs["base_url"] = base_url
+    return service_cls(**init_kwargs)
+
+
 def create_stt_service(user_config):
     """Create and return appropriate STT service based on user configuration"""
     logger.info(
@@ -49,6 +70,13 @@ def create_stt_service(user_config):
     elif user_config.stt.provider == ServiceProviders.OPENAI.value:
         return OpenAISTTService(
             api_key=user_config.stt.api_key, model=user_config.stt.model
+        )
+    elif user_config.stt.provider == ServiceProviders.OPENAI_COMPATIBLE.value:
+        return _init_openai_service(
+            OpenAISTTService,
+            base_url=user_config.stt.base_url,
+            api_key=user_config.stt.api_key,
+            model=user_config.stt.model,
         )
     elif user_config.stt.provider == ServiceProviders.CARTESIA.value:
         return CartesiaSTTService(api_key=user_config.stt.api_key)
@@ -127,6 +155,15 @@ def create_tts_service(user_config, audio_config: "AudioConfig"):
         return OpenAITTSService(
             api_key=user_config.tts.api_key,
             model=user_config.tts.model,
+            text_filters=[xml_function_tag_filter],
+        )
+    elif user_config.tts.provider == ServiceProviders.OPENAI_COMPATIBLE.value:
+        return _init_openai_service(
+            OpenAITTSService,
+            base_url=user_config.tts.base_url,
+            api_key=user_config.tts.api_key,
+            model=user_config.tts.model,
+            voice=user_config.tts.voice,
             text_filters=[xml_function_tag_filter],
         )
     elif user_config.tts.provider == ServiceProviders.ELEVENLABS.value:
@@ -209,6 +246,24 @@ def create_llm_service(user_config):
                 model=model,
                 params=OpenAILLMService.InputParams(temperature=0.1),
             )
+    elif user_config.llm.provider == ServiceProviders.OPENAI_COMPATIBLE.value:
+        if "gpt-5" in model:
+            return _init_openai_service(
+                OpenAILLMService,
+                base_url=user_config.llm.base_url,
+                api_key=user_config.llm.api_key,
+                model=model,
+                params=OpenAILLMService.InputParams(
+                    reasoning_effort="minimal", verbosity="low"
+                ),
+            )
+        return _init_openai_service(
+            OpenAILLMService,
+            base_url=user_config.llm.base_url,
+            api_key=user_config.llm.api_key,
+            model=model,
+            params=OpenAILLMService.InputParams(temperature=0.1),
+        )
     elif user_config.llm.provider == ServiceProviders.GROQ.value:
         print(
             f"Creating Groq LLM service with API key: {user_config.llm.api_key} and model: {model}"
